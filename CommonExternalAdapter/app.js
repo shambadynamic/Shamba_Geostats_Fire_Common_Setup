@@ -3,72 +3,6 @@ require('dotenv').config();
 const fs = require('fs');
 const { Web3Storage, getFilesFromPath } = require('web3.storage');
 
-// async function append_url_to_cid_list(cid_url) {
-//     const path = "cid_list.json";
-
-//     if (fs.existsSync(path)) {
-
-
-//         fs.readFile(path, (err, data) => {
-//             if (err) {
-//                 console.log(err);
-//                 return false;
-//             };
-
-//             var data = JSON.parse(data.toString());
-//             data.urls.push(cid_url);
-//             return fs.writeFile(path, JSON.stringify(data), (err, result) => {
-//                 if (err) {
-//                     console.log(err);
-//                     return false;
-//                 }
-//                 return true;
-
-//             });
-//         });
-//     } else {
-
-
-//         var data = {
-//             urls: [cid_url]
-//         };
-//         return fs.writeFile(path, JSON.stringify(data), async function(err) {
-
-//             if (err) {
-//                 console.log("An error occured while writing CID to JSON File.");
-//                 console.log(err);
-
-//                 return false;
-
-
-//             }
-//             return true;
-//         })
-
-//     }
-// }
-
-// const retrieve_cid_urls_list = (callback) => {
-//     const path = "cid_list.json";
-
-//     if (fs.existsSync(path)) {
-
-//         fs.readFile(path, async(err, data) => {
-//             if (err) {
-//                 console.log(err);
-//                 callback({ "urls": [] });
-//             };
-
-//             var json_data = JSON.parse(data.toString());
-//             callback(json_data);
-//         });
-
-//     } else {
-//         callback({ "urls": [] });
-
-//     }
-// }
-
 async function retrieve_cid_urls_list(callback) {
     try {
 
@@ -185,7 +119,6 @@ const createRequest = (input, callback) => {
 
                 var web3_json_data = {
                     "request": {
-                        "agg_x": agg_x,
                         "dataset_code": dataset_code,
                         "selected_band": selected_band,
                         "geometry": geometry,
@@ -203,7 +136,8 @@ const createRequest = (input, callback) => {
                 }
 
                 if (endpoint == 'statistics') {
-                    web3_json_data.response.agg_x = final_result
+                    web3_json_data.request['agg_x'] = agg_x
+                    web3_json_data.response[agg_x] = final_result
                 }
 
                 path = "/tmp/data.json"
