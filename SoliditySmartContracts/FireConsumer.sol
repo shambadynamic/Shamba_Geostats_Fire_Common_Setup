@@ -13,7 +13,7 @@ contract FireConsumer is ChainlinkClient {
   constructor(
   ) {
     setChainlinkToken(0xa36085F69e2889c224210F603D836748e7dC0088);
-    setChainlinkOracle(0xf4434feDd55D3d6573627F39fA39867b23f4Bf7F);
+    setChainlinkOracle(0xA623107254c575105139C499d4869b69582340cB);
   }
 
   mapping(uint256 => string) cids;
@@ -30,7 +30,7 @@ contract FireConsumer is ChainlinkClient {
   )
     public
   {
-    bytes32 specId = "fd78aec23f7d4995bf0799cdd38e7e6f";
+    bytes32 specId = "86d169c2904e487f954807313a20effa";
     uint256 payment = 1000000000000000000;
     Chainlink.Request memory req = buildChainlinkRequest(specId, address(this), this.fulfillFireData.selector);
     req.add("data", "{\"dataset_code\":\"MODIS/006/MOD14A1\", \"selected_band\":\"MaxFRP\", \"image_scale\":1000, \"start_date\":\"2021-09-01\", \"end_date\":\"2021-09-10\", \"geometry\":{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"id\":1},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[29.53125,19.642587534013032],[29.53125,27.059125784374068],[39.90234375,27.059125784374068],[39.90234375,19.642587534013032],[29.53125,19.642587534013032]]]}},{\"type\":\"Feature\",\"properties\":{\"id\":2},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[46.40625,13.752724664396988],[46.40625,20.138470312451155],[56.25,20.138470312451155],[56.25,13.752724664396988],[46.40625,13.752724664396988]]]}}]}}");

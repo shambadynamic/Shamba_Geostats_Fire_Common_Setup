@@ -13,7 +13,7 @@ contract GeoConsumer is ChainlinkClient {
   constructor(
   ) {
     setChainlinkToken(0xa36085F69e2889c224210F603D836748e7dC0088);
-    setChainlinkOracle(0xf4434feDd55D3d6573627F39fA39867b23f4Bf7F);
+    setChainlinkOracle(0xA623107254c575105139C499d4869b69582340cB);
   }
 
   mapping(uint256 => string) cids;
@@ -30,7 +30,7 @@ contract GeoConsumer is ChainlinkClient {
   )
     public
   {
-    bytes32 specId = "83191779e6c74593b7a99bea8c116e31";
+    bytes32 specId = "a8c9590bae904f328eb155f10d4ac841";
     uint256 payment = 1000000000000000000;
     Chainlink.Request memory req = buildChainlinkRequest(specId, address(this), this.fulfillGeospatialData.selector);
     
