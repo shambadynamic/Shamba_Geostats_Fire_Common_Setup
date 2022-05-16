@@ -2,11 +2,12 @@ const axios = require('axios')
 require('dotenv').config();
 const fs = require('fs');
 const { Web3Storage, getFilesFromPath } = require('web3.storage');
+const token = process.env.TOKEN;
+
 
 async function retrieve_cid_urls_list(callback) {
     try {
 
-        const token = process.env.TOKEN;
         var cid_url_list = []
 
         axios.get('https://api.web3.storage/user/uploads', {
@@ -18,10 +19,31 @@ async function retrieve_cid_urls_list(callback) {
                 var data_list = response.data
                 for (var i = 0; i < data_list.length; i++) {
                     var data = data_list[i]
-                    cid_url_list.push("https://dweb.link/ipfs/" + data['cid'] + "/data.json")
+                    cid_url_list.push("https://dweb.link/ipfs/" + data['cid'])
 
                 }
                 callback({ "urls": cid_url_list })
+
+            }).catch(error => {
+                console.error('There was an error!', error);
+                callback({ "Error": error.message });
+            });
+
+
+    } catch (e) {
+        console.error(e);
+        callback({ "Error": e.message });
+    }
+}
+
+async function retrieve_prev_tx_hash(url, callback) {
+    try {
+
+        axios.get(url)
+            .then(response => {
+                var response_data = response.data
+
+                callback({ "prev_tx_hash": response_data.response.tx_hash })
 
             }).catch(error => {
                 console.error('There was an error!', error);
@@ -110,11 +132,14 @@ const createRequest = (input, callback) => {
 
                 res.data.result = final_result
 
+                var metadata_cid = res.data.metadata.ipfs_cid
+
 
                 delete res.data.success
                 delete res.data.error
                 delete res.data.data_token
                 delete res.data.duration
+                delete res.data.metadata
 
 
                 var web3_json_data = {
@@ -131,6 +156,7 @@ const createRequest = (input, callback) => {
                         "result": final_result,
                         "contract_address": contract_address,
                         "operator_address": operator_address,
+                        "metadata_cid": metadata_cid,
                         "tx_hash": tx_hash
                     }
                 }
@@ -140,246 +166,43 @@ const createRequest = (input, callback) => {
                     web3_json_data.response[agg_x] = final_result
                 }
 
-                path = "/tmp/data.json"
-                const jsonContent = JSON.stringify(web3_json_data);
+                axios.post('https://api.web3.storage/upload', web3_json_data, {
+                    headers: {
 
-                if (fs.existsSync(path)) {
-                    fs.readFile(path, (err, fileData) => {
-                        var data = JSON.parse(fileData.toString());
-                        if (web3_json_data.response.tx_hash !== data.response.tx_hash) {
-                            try {
-                                fs.writeFile(path, jsonContent, async function(err) {
-                                    if (err) {
-                                        console.log("An error occured while writing JSON Object to File.");
-                                        console.log(err);
-                                        var res = {
-                                            "status": 403,
-                                            "data": {
-                                                "jobRunID": jobRunID,
-                                                "status": "errored",
-                                                "error": {
-                                                    "name": "Unable to write data to the json file",
-                                                },
-                                                "statusCode": 403
-                                            }
-
-                                        }
-                                        callback(res.status, res.data)
-
-                                    } else {
-                                        console.log("JSON file has been saved.");
-                                        const token = process.env.TOKEN;
-
-                                        console.log(token);
-
-                                        const storage = new Web3Storage({ token })
-
-                                        const file = await getFilesFromPath(path);
-
-                                        const cid = await storage.put(file)
-                                        console.log('Content added with CID:', cid)
-
-                                        var res = {
-                                            "status": 200,
-                                            "data": {
-                                                "jobRunID": jobRunID,
-                                                "status": "success",
-                                                "result": { "cid": cid, "result": final_result },
-                                                "message": `Data successfully uploaded to https://dweb.link/ipfs/${cid}`,
-                                                "statusCode": 200
-                                            }
-                                        }
-                                        callback(res.status, res.data)
-
-                                    }
-                                });
-                            } catch (e) {
-                                var res = {
-                                    "status": 405,
-                                    "data": {
-                                        "jobRunID": jobRunID,
-                                        "status": "errored",
-                                        "error": {
-                                            "name": "Unable to upload data to web3 store",
-                                        },
-                                        "statusCode": 405
-                                    }
-
-                                }
-
-                                callback(res.status, res.data)
-                            }
-
-                        } else {
-                            if (fs.existsSync(path)) {
-                                retrieve_cid_urls_list((data) => {
-                                    console.log(data['urls']);
-
-                                    var urls = data['urls']
-                                    var json_data_url = urls[0].toString().replace('/data.json', '')
-                                    var url_arr = json_data_url.split('/')
-                                    var cid_value = url_arr[url_arr.length - 1]
-
-                                    var res = {
-                                        "status": 200,
-                                        "data": {
-                                            "jobRunID": jobRunID,
-                                            "status": "success",
-                                            "result": { "cid": cid_value, "result": final_result },
-                                            "message": `Data successfully uploaded to ${json_data_url}`,
-                                            "statusCode": 200
-                                        }
-
-                                    }
-                                    callback(res.status, res.data)
-                                });
-
-                            } else {
-                                try {
-
-                                    fs.writeFile(path, jsonContent, async function(err) {
-                                        if (err) {
-                                            console.log("An error occured while writing JSON Object to File.");
-                                            console.log(err);
-                                            var res = {
-                                                "status": 403,
-                                                "data": {
-                                                    "jobRunID": jobRunID,
-                                                    "status": "errored",
-                                                    "error": {
-                                                        "name": "Unable to write data to the json file",
-                                                    },
-                                                    "statusCode": 403
-                                                }
-
-                                            }
-
-                                            callback(res.status, res.data)
-
-
-                                        } else {
-                                            console.log("JSON file has been saved.");
-                                            const token = process.env.TOKEN;
-
-                                            console.log(token);
-
-                                            const storage = new Web3Storage({ token })
-
-                                            const file = await getFilesFromPath(path);
-
-                                            const cid = await storage.put(file)
-                                            console.log('Content added with CID:', cid)
-
-
-
-                                            var res = {
-                                                "status": 200,
-                                                "data": {
-                                                    "jobRunID": jobRunID,
-                                                    "status": "success",
-                                                    "result": { "cid": cid, "result": final_result },
-                                                    "message": `Data successfully uploaded to https://dweb.link/ipfs/${cid}`,
-                                                    "statusCode": 200
-                                                }
-
-                                            }
-
-                                            callback(res.status, res.data)
-
-                                        }
-                                    });
-                                } catch (e) {
-                                    var res = {
-                                        "status": 405,
-                                        "data": {
-                                            "jobRunID": jobRunID,
-                                            "status": "errored",
-                                            "error": {
-                                                "name": "Unable to upload data to web3 store",
-                                            },
-                                            "statusCode": 405
-                                        }
-
-                                    }
-
-                                    callback(res.status, res.data)
-                                }
-                            }
-                        }
-
-                    });
-                } else {
-                    console.log('here')
-                    try {
-
-                        fs.writeFile(path, jsonContent, async function(err) {
-                            if (err) {
-                                console.log("An error occured while writing JSON Object to File.");
-                                console.log(err);
-                                var res = {
-                                    "status": 403,
-                                    "data": {
-                                        "jobRunID": jobRunID,
-                                        "status": "errored",
-                                        "error": {
-                                            "name": "Unable to write data to the json file",
-                                        },
-                                        "statusCode": 403
-                                    }
-
-                                }
-
-                                callback(res.status, res.data)
-
-
-                            } else {
-                                console.log("JSON file has been saved.");
-                                const token = process.env.TOKEN;
-
-                                console.log(token);
-
-                                const storage = new Web3Storage({ token })
-
-                                const file = await getFilesFromPath(path);
-
-                                const cid = await storage.put(file)
-                                console.log('Content added with CID:', cid)
-
-
-
-                                var res = {
-                                    "status": 200,
-                                    "data": {
-                                        "jobRunID": jobRunID,
-                                        "status": "success",
-                                        "result": { "cid": cid, "result": final_result },
-                                        "message": `Data successfully uploaded to https://dweb.link/ipfs/${cid}`,
-                                        "statusCode": 200
-                                    }
-
-                                }
-
-                                callback(res.status, res.data)
-
-                            }
-                        });
-                    } catch (e) {
-                        var res = {
-                            "status": 405,
-                            "data": {
-                                "jobRunID": jobRunID,
-                                "status": "errored",
-                                "error": {
-                                    "name": "Unable to upload data to web3 store",
-                                },
-                                "statusCode": 405
-                            }
-
-                        }
-
-                        callback(res.status, res.data)
+                        Authorization: `Bearer ${token}`
                     }
-                }
+                }).then(response => {
+                    var response_data = response.data
+                    const cid = response_data.cid
+                    var res = {
+                        "status": 200,
+                        "data": {
+                            "jobRunID": jobRunID,
+                            "status": "success",
+                            "result": { "cid": cid, "result": final_result },
+                            "message": `Data successfully uploaded to https://dweb.link/ipfs/${cid}`,
+                            "statusCode": 200
+                        }
+                    }
+                    callback(res.status, res.data)
+
+                }).catch(error => {
+                    console.error('There was an error!', error);
+                    var res = {
+                        "status": 405,
+                        "data": {
+                            "jobRunID": jobRunID,
+                            "status": "errored",
+                            "error": {
+                                "name": "Unable to upload data to web3 store",
+                            },
+                            "statusCode": 405
+                        }
+
+                    }
+                    callback(res.status, res.data)
+                });
+
 
             } else {
                 res.data = {
@@ -393,7 +216,7 @@ const createRequest = (input, callback) => {
                 callback(res.status, res.data)
 
             }
-            console.log(`statusCode: ${res.status}`)
+            //console.log(`statusCode: ${res.status}`)
 
 
         })
